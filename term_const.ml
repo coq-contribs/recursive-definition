@@ -370,8 +370,6 @@ try
 		   with e -> (msgerrnl (str "failure in recursive case");
 			      raise e))))
     | _ -> (match (find_call_occs  f_constr expr) with
-	     	(* ici expr c'est la partie dte des regles
-	     	   et donc c'est le b du mk_intros_and_continue*)
 	     	None -> 
 		  (try 
 		    base_leaf func eqs expr
@@ -456,20 +454,22 @@ let whole_start foncl input_type relation wf_thm preuves =
 	 | Name n_id -> next_ident_away n_id (f_id::ids)
 	 | Anonymous -> assert false in
      let tac, hrec = (start n_id input_type relation wf_thm g) in
-       (tclTHEN tac
+       tclTHEN tac
 	  (proveterminate hrec preuves (mkVar f_id)
 	     (hrec::n_id::f_id::ids) foncl []
-	     (instantiate_lambda foncl_body [mkVar f_id;mkVar n_id]))) g in
+	     (instantiate_lambda foncl_body [mkVar f_id;mkVar n_id])) g in
 (*     let _ = msgnl(str "exiting whole start") in *)
        v);;
 
 let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
-  let (relation:constr)= interp_constr Evd.empty (Global.env()) relation_ast in
-  let (wf_thm:constr) = interp_constr Evd.empty (Global.env()) wf_thm_ast in
-  let (proofs_constr:constr list) = List.map global_reference proofs in
+  let (evmap, env) = Command.get_current_context() in
+  let (relation:constr)= interp_constr evmap env relation_ast in
+  let (wf_thm:constr) = interp_constr evmap env wf_thm_ast in
+  let (proofs_constr:constr list) =
+      List.map (fun x -> interp_constr evmap env x) proofs in
   let (foncl_constr:constr) = global_reference fl in 
     (start_proof thm_name
-       (IsGlobal (Proof Lemma)) Sign.empty_named_context (hyp_terminates fl)
+       (IsGlobal (Proof Lemma)) (Environ.named_context env) (hyp_terminates fl)
        (fun _ _ -> ());
      by (whole_start (reference_of_constr foncl_constr)
 	   input_type relation wf_thm proofs_constr);
@@ -617,11 +617,12 @@ let (com_eqn : identifier ->
        global_reference -> global_reference -> global_reference
 	 -> constr_expr -> unit) =
   fun eq_name functional_ref f_ref terminate_ref eq ->
-    let eq_constr = interp_constr Evd.empty (Global.env()) eq in
+    let (evmap, env) = Command.get_current_context() in
+    let eq_constr = interp_constr evmap env eq in
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
       (start_proof eq_name (IsGlobal (Proof Lemma))
-	 Sign.empty_named_context eq_constr (fun _ _ -> ());
+       (Environ.named_context env) eq_constr (fun _ _ -> ());
        by
 	 (start_equation f_ref terminate_ref
 	    (fun x ->
@@ -632,7 +633,7 @@ let (com_eqn : identifier ->
 		    [f_constr; mkVar x])));
        Command.save_named true);;
 
-let recursive_definition f type_of_f r wf proofs_id eq =
+let recursive_definition f type_of_f r wf proofs eq =
   let function_type = interp_constr Evd.empty (Global.env()) type_of_f in
   let env = push_rel (Name f,None,function_type) (Global.env()) in
   let res = match kind_of_term (interp_constr Evd.empty env eq) with
@@ -648,7 +649,7 @@ let recursive_definition f type_of_f r wf proofs_id eq =
   let functional_id =  add_suffix f "_F" in
   let term_id = add_suffix f "_terminate" in
   let functional_ref = declare_fun functional_id IsDefinition res in
-  let _ = com_terminate functional_id input_type r wf term_id proofs_id in
+  let _ = com_terminate functional_id input_type r wf term_id proofs in
   let term_ref = Nametab.locate (make_short_qualid term_id) in
   let f_ref = declare_f f (IsProof Lemma) input_type term_ref in
   let _ = message "start second proof" in
@@ -656,10 +657,10 @@ let recursive_definition f type_of_f r wf proofs_id eq =
 
 VERNAC COMMAND EXTEND RecursiveDefinition
   [ "Recursive" "Definition" ident(f) constr(type_of_f) constr(r) constr(wf)
-     ident(proof) constr(eq) ] ->
+     constr(proof) constr(eq) ] ->
   [ recursive_definition f type_of_f r wf [proof] eq ]
 | [ "Recursive" "Definition" ident(f) constr(type_of_f) constr(r) constr(wf)
-     "[" ne_ident_list(proof) "]" constr(eq) ] ->
+     "[" ne_constr_list(proof) "]" constr(eq) ] ->
   [ recursive_definition f type_of_f r wf proof eq ]
 
 END
