@@ -504,7 +504,7 @@ let (declare_fun : identifier -> global_kind -> constr -> global_reference) =
 	      const_entry_type = None;
 	      const_entry_opaque = false;
               const_entry_boxed = true} in
-      ConstRef(snd (declare_constant f_id (DefinitionEntry ce, kind)));;
+      ConstRef(declare_constant f_id (DefinitionEntry ce, kind));;
 
 let (declare_f : identifier -> global_kind -> constr -> global_reference -> global_reference) =
   fun f_id kind input_type fterm_ref ->
