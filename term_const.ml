@@ -29,6 +29,7 @@ open Constrintern
 
 open Equality
 open Auto
+open Eauto
 
 open Genarg
 
@@ -273,7 +274,7 @@ let get_f foncl =
       Lambda (Name f, _, _) -> f  
     |_ -> error "la fonctionnelle est mal definie";;
 
-let rec_leaf hrec proof result_type (func:global_reference) eqs expr =
+let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
 (*  let _ = msgnl(str "entering rec_leaf") in *)
   let fn, arg = 
     (match (find_call_occs (mkVar (get_f (constr_of_reference func))) expr) with
@@ -321,12 +322,22 @@ let rec_leaf hrec proof result_type (func:global_reference) eqs expr =
 	       default_full_auto];
 	    tclTHENLIST
 	      [list_rewrite true eqs;
-	       tclORELSE (apply proof) (fun g -> (prgoal g; apply proof g));
-	       default_full_auto]] g);;
+               List.fold_right
+                (fun proof tac ->
+                  tclORELSE
+                    (tclCOMPLETE
+                      (tclTHENLIST
+                        [e_resolve_constr proof;
+                         tclORELSE default_full_auto e_assumption]))
+                         tac)
+                       proofs
+                       (fun g ->
+                          (msgnl (str "complete proof failed for");
+                           prgoal g; tclFAIL 0 "" g))]] g);;
 
-let rec (proveterminate:identifier -> constr -> constr -> (identifier list) ->
-	   global_reference -> (constr list) -> constr -> tactic) =
-fun (hrec:identifier) (preuve:constr)  (f_constr:constr)
+let rec (proveterminate:identifier -> (constr list) -> constr ->
+ (identifier list) -> global_reference -> (constr list) -> constr -> tactic) =
+fun (hrec:identifier) (preuves:constr list)  (f_constr:constr)
   (ids:identifier list) (func:global_reference) (eqs:constr list) (expr:constr) ->
 try
 (*  let _ = msgnl (str "entering proveterminate") in *)
@@ -342,10 +353,22 @@ try
 			     v
 			)
    	         (List.map (mk_intros_and_continue true
-                              (proveterminate hrec preuve f_constr)
+                              (proveterminate hrec preuves f_constr)
                               ids func eqs) 
 	            (Array.to_list l))
-	   | Some _ -> error "pattern matching on a recursive call")
+	   | Some _ -> (match (find_call_occs  f_constr expr) with
+	     	(* ici expr c'est la partie dte des regles
+	     	   et donc c'est le b du mk_intros_and_continue*)
+	     	None -> 
+		  (try 
+		    base_leaf func eqs expr
+		  with e -> (msgerrnl (str "failure in base case");raise e))
+	      | Some x -> 
+		  (try
+		    rec_leaf hrec preuves
+		      (result_type (constr_of_reference func)) func eqs expr
+		   with e -> (msgerrnl (str "failure in recursive case");
+			      raise e))))
     | _ -> (match (find_call_occs  f_constr expr) with
 	     	(* ici expr c'est la partie dte des regles
 	     	   et donc c'est le b du mk_intros_and_continue*)
@@ -355,7 +378,7 @@ try
 		  with e -> (msgerrnl (str "failure in base case");raise e))
 	      | Some x -> 
 		  (try
-		    rec_leaf hrec preuve
+		    rec_leaf hrec preuves
 		      (result_type (constr_of_reference func)) func eqs expr
 		   with e -> (msgerrnl (str "failure in recursive case");
 			      raise e))) in
@@ -417,7 +440,7 @@ let rec instantiate_lambda t = function
 	   Name id -> instantiate_lambda (subst1 a body) l
 	 | Anonymous -> body) ;;
 
-let whole_start foncl input_type relation wf_thm preuve =  
+let whole_start foncl input_type relation wf_thm preuves =  
   (fun g ->
      let v =
      let ids = ids_of_named_context (pf_hyps g) in
@@ -434,22 +457,22 @@ let whole_start foncl input_type relation wf_thm preuve =
 	 | Anonymous -> assert false in
      let tac, hrec = (start n_id input_type relation wf_thm g) in
        (tclTHEN tac
-	  (proveterminate hrec preuve (mkVar f_id)
+	  (proveterminate hrec preuves (mkVar f_id)
 	     (hrec::n_id::f_id::ids) foncl []
 	     (instantiate_lambda foncl_body [mkVar f_id;mkVar n_id]))) g in
 (*     let _ = msgnl(str "exiting whole start") in *)
        v);;
 
-let com_terminate fl input_type relation_ast wf_thm_ast thm_name proof =
+let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (relation:constr)= interp_constr Evd.empty (Global.env()) relation_ast in
   let (wf_thm:constr) = interp_constr Evd.empty (Global.env()) wf_thm_ast in
-  let (proof_constr:constr) = global_reference proof in
+  let (proofs_constr:constr list) = List.map global_reference proofs in
   let (foncl_constr:constr) = global_reference fl in 
     (start_proof thm_name
        (IsGlobal (Proof Lemma)) Sign.empty_named_context (hyp_terminates fl)
        (fun _ _ -> ());
      by (whole_start (reference_of_constr foncl_constr)
-	   input_type relation wf_thm proof_constr);
+	   input_type relation wf_thm proofs_constr);
      Command.save_named true);;
 
 let ind_of_ref = function 
@@ -479,7 +502,8 @@ let (declare_fun : identifier -> global_kind -> constr -> global_reference) =
   fun f_id kind value ->
     let ce = {const_entry_body = value;
 	      const_entry_type = None;
-	      const_entry_opaque = false} in
+	      const_entry_opaque = false;
+              const_entry_boxed = true} in
       ConstRef(snd (declare_constant f_id (DefinitionEntry ce, kind)));;
 
 let (declare_f : identifier -> global_kind -> constr -> global_reference -> global_reference) =
@@ -579,9 +603,10 @@ let rec prove_eq (termine:constr) (f:constr)
 		       (prove_eq termine f) ids functional eqs)
 		    (Array.to_list l))
 	   | Some x ->
-	       failwith
-		 ("recursive call in the filtered expression of a case:" ^
-		  " not yet done"))  
+               	(match find_call_occs f expr with
+	     None -> base_leaf_eq (reference_of_constr functional) eqs f
+	   | Some (fn,args) ->
+	       rec_leaf_eq termine f ids functional eqs expr fn args))
     | _ -> 
 	(match find_call_occs f expr with
 	     None -> base_leaf_eq (reference_of_constr functional) eqs f
@@ -607,7 +632,7 @@ let (com_eqn : identifier ->
 		    [f_constr; mkVar x])));
        Command.save_named true);;
 
-let recursive_definition f type_of_f r wf proof_id eq =
+let recursive_definition f type_of_f r wf proofs_id eq =
   let function_type = interp_constr Evd.empty (Global.env()) type_of_f in
   let env = push_rel (Name f,None,function_type) (Global.env()) in
   let res = match kind_of_term (interp_constr Evd.empty env eq) with
@@ -623,7 +648,7 @@ let recursive_definition f type_of_f r wf proof_id eq =
   let functional_id =  add_suffix f "_F" in
   let term_id = add_suffix f "_terminate" in
   let functional_ref = declare_fun functional_id IsDefinition res in
-  let _ = com_terminate functional_id input_type r wf term_id proof_id in
+  let _ = com_terminate functional_id input_type r wf term_id proofs_id in
   let term_ref = Nametab.locate (make_short_qualid term_id) in
   let f_ref = declare_f f (IsProof Lemma) input_type term_ref in
   let _ = message "start second proof" in
@@ -632,5 +657,9 @@ let recursive_definition f type_of_f r wf proof_id eq =
 VERNAC COMMAND EXTEND RecursiveDefinition
   [ "Recursive" "Definition" ident(f) constr(type_of_f) constr(r) constr(wf)
      ident(proof) constr(eq) ] ->
+  [ recursive_definition f type_of_f r wf [proof] eq ]
+| [ "Recursive" "Definition" ident(f) constr(type_of_f) constr(r) constr(wf)
+     "[" ne_ident_list(proof) "]" constr(eq) ] ->
   [ recursive_definition f type_of_f r wf proof eq ]
+
 END
