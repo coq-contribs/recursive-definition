@@ -9,7 +9,7 @@ Parameter div2_gt_lt : forall x : nat, x > 1 -> div2 x < x.
 
 Recursive Definition log (nat -> nat) lt lt_wf div2_gt_lt
  (forall x : nat,
-  log x = (if le_gt_dec x 1 then fun h => 0 else fun h => S (log (div2 x)))).
+  log x = (if le_gt_dec x 1 then  0 else  S (log (div2 x)))).
 
 Inspect 5.
 (* Pour tester pas-à-pas:
