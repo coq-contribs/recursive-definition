@@ -174,7 +174,7 @@ let coq_sig = lazy(coq_constant "sig")
 let coq_O = lazy(coq_constant "O")
 let coq_S = lazy(coq_constant "S")
 
-let gt_antirefl = lazy(coq_constant "gt_antirefl")
+let gt_irrefl = lazy(coq_constant "gt_irrefl")
 let lt_n_O = lazy(coq_constant "lt_n_O")
 let lt_n_Sn = lazy(coq_constant "lt_n_Sn")
 
@@ -256,7 +256,7 @@ let base_leaf (func:global_reference) eqs expr =
                     tclTHENS (simplest_case (mkVar k))
                       [(tclTHEN (intro_using h) 
 		     	  (tclTHEN (simplest_elim 
-				      (mkApp (Lazy.force gt_antirefl,
+				      (mkApp (Lazy.force gt_irrefl,
 					      [| Lazy.force coq_O |])))
 		             default_full_auto)); tclIDTAC];
                     intros;
@@ -463,7 +463,7 @@ let whole_start foncl input_type relation wf_thm preuves =
 
 let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (evmap, env) = Command.get_current_context() in
-  let (relation:constr)= interp_constr evmap env relation_ast in
+  let (comparison:constr)= interp_constr evmap env relation_ast in
   let (wf_thm:constr) = interp_constr evmap env wf_thm_ast in
   let (proofs_constr:constr list) =
       List.map (fun x -> interp_constr evmap env x) proofs in
@@ -472,7 +472,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
        (IsGlobal (Proof Lemma)) (Environ.named_context_val env) (hyp_terminates fl)
        (fun _ _ -> ());
      by (whole_start (reference_of_constr foncl_constr)
-	   input_type relation wf_thm proofs_constr);
+	   input_type comparison wf_thm proofs_constr);
      Command.save_named true);;
 
 let ind_of_ref = function 
