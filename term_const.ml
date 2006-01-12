@@ -71,7 +71,7 @@ let rec getMutCase env t =
        (match getMutCase env (subst1 (mkVar id) t') with
 	    (l,e,c) -> (id::l,e,c))
    | Case (b, c, a, d) -> ([], env , a)
-   | _ -> Pp.pp(Printer.prterm t) ;
+   | _ -> Pp.pp(Printer.pr_lconstr t) ;
        error "Reste a traiter les autres formes, si c'est une application,
 	 Si c'est un autre Case imbrique ou autre... "
 	 ;;
