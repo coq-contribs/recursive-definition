@@ -241,7 +241,7 @@ let list_rewrite (rev:bool) (eqs: constr list) =
   tclREPEAT
     (List.fold_right
        (fun eq i -> tclORELSE (rewriteLR eq) i)
-       (if rev then (List.rev eqs) else eqs) (tclFAIL 0 []));;
+       (if rev then (List.rev eqs) else eqs) (tclFAIL 0 (mt())));;
 
 let base_leaf (func:global_reference) eqs expr =
 (*  let _ = msgnl (str "entering base_leaf") in *)
@@ -333,7 +333,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                        proofs
                        (fun g ->
                           (msgnl (str "complete proof failed for");
-                           prgoal g; tclFAIL 0 [] g))]] g);;
+                           prgoal g; tclFAIL 0 (mt()) g))]] g);;
 
 let rec (proveterminate:identifier -> (constr list) -> constr ->
  (identifier list) -> global_reference -> (constr list) -> constr -> tactic) =
