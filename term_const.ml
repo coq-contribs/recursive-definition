@@ -469,7 +469,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
       List.map (fun x -> interp_constr evmap env x) proofs in
   let (foncl_constr:constr) = global_reference fl in 
     (start_proof thm_name
-       (IsGlobal (Proof Lemma)) (Environ.named_context_val env) (hyp_terminates fl)
+       (Global, Proof Lemma) (Environ.named_context_val env) (hyp_terminates fl)
        (fun _ _ -> ());
      by (whole_start (reference_of_constr foncl_constr)
 	   input_type comparison wf_thm proofs_constr);
@@ -498,7 +498,7 @@ let (value_f:constr -> global_reference -> constr) =
 	     RVar(d0,v_id)])) in
       understand Evd.empty (Global.env()) value;;
 
-let (declare_fun : identifier -> global_kind -> constr -> global_reference) =
+let (declare_fun : identifier -> logical_kind -> constr -> global_reference) =
   fun f_id kind value ->
     let ce = {const_entry_body = value;
 	      const_entry_type = None;
@@ -506,7 +506,7 @@ let (declare_fun : identifier -> global_kind -> constr -> global_reference) =
               const_entry_boxed = true} in
       ConstRef(declare_constant f_id (DefinitionEntry ce, kind));;
 
-let (declare_f : identifier -> global_kind -> constr -> global_reference -> global_reference) =
+let (declare_f : identifier -> logical_kind -> constr -> global_reference -> global_reference) =
   fun f_id kind input_type fterm_ref ->
     declare_fun f_id kind (value_f input_type fterm_ref);;
 
@@ -621,7 +621,7 @@ let (com_eqn : identifier ->
     let eq_constr = interp_constr evmap env eq in
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
-      (start_proof eq_name (IsGlobal (Proof Lemma))
+      (start_proof eq_name (Global, Proof Lemma)
        (Environ.named_context_val env) eq_constr (fun _ _ -> ());
        by
 	 (start_equation f_ref terminate_ref
@@ -648,7 +648,7 @@ let recursive_definition f type_of_f r wf proofs eq =
   let equation_id = add_suffix f "_equation" in
   let functional_id =  add_suffix f "_F" in
   let term_id = add_suffix f "_terminate" in
-  let functional_ref = declare_fun functional_id IsDefinition res in
+  let functional_ref = declare_fun functional_id (IsDefinition Definition) res in
   let _ = com_terminate functional_id input_type r wf term_id proofs in
   let term_ref = Nametab.locate (make_short_qualid term_id) in
   let f_ref = declare_f f (IsProof Lemma) input_type term_ref in
