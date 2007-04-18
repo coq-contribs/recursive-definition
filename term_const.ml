@@ -327,7 +327,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                     tclORELSE
                       (tclCOMPLETE
 			 (tclTHENLIST
-                            [e_resolve_constr proof;
+                            [simplest_eapply proof;
                              tclORELSE default_full_auto e_assumption]))
                       tac)
                  proofs
