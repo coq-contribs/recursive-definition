@@ -26,6 +26,7 @@ open Rawterm
 open Pretyping
 open Safe_typing
 open Constrintern
+open Hiddentac
 
 open Equality
 open Auto
@@ -327,7 +328,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                     tclORELSE
                       (tclCOMPLETE
 			 (tclTHENLIST
-                            [simplest_eapply proof;
+                            [h_simplest_eapply proof;
                              tclORELSE default_full_auto e_assumption]))
                       tac)
                  proofs
