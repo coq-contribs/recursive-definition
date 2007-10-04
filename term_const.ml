@@ -425,7 +425,7 @@ let start n_name input_type relation wf_thm =
 	    let v = 
 	      tclTHENLIST
 		[intro_using x;
-		 general_elim (mkVar x, ImplicitBindings[]) (wf_c, ImplicitBindings[]);
+		 general_elim false (mkVar x, ImplicitBindings[]) (wf_c, ImplicitBindings[]);
 		 clear [x];
 		 intros_using [n_name; hrec]] g in
 	      v), hrec in 
