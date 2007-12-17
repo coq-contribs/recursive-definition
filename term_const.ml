@@ -58,7 +58,7 @@ let (hrec_id:(identifier list)->identifier) = hyp_id 13;;
 let (hex_id:(identifier list)->identifier) = hyp_id 14;;
 
 
-let message s = if Options.is_verbose () then msgnl(str s);;
+let message s = if Flags.is_verbose () then msgnl(str s);;
 
 let rec getMutCase env t =
   match kind_of_term t with
