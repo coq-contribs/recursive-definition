@@ -487,7 +487,7 @@ let (value_f:constr -> global_reference -> constr) =
     let v_id = id_of_string "v" in
     let value =
       RLambda
-      	(d0, Name x_id, RDynamic(d0, constr_in a),
+      	(d0, Name x_id, Explicit, RDynamic(d0, constr_in a),
 	 RCases
 	   (d0,None,
 	    [RApp(d0, RRef(d0,fterm), [RVar(d0, x_id)]),(Anonymous,None)],
