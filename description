@@ -10,3 +10,4 @@ Description: This module provides a facility to define recursive functions in
    a theorem giving the fixpoint equation. 
    THIS IS MAINLY A TEST CONTRIB, BEFORE INTEGRATION IN COQ.
 Keywords: recursive function, well founded recursion
+Category: Miscellaneous/Coq Extensions
