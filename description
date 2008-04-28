@@ -9,5 +9,5 @@ Description: This module provides a facility to define recursive functions in
    well-founded relation. A pure function is then generated, together with 
    a theorem giving the fixpoint equation. 
    THIS IS MAINLY A TEST CONTRIB, BEFORE INTEGRATION IN COQ.
-Keywords: recursive function, well founded recursion
+Keywords: recursive functions, well founded recursion, well foundedness
 Category: Miscellaneous/Coq Extensions
