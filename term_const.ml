@@ -201,7 +201,7 @@ let  mkCaseEq a =
 				   [| type_of_a; a|])])
 	  (tclTHEN (fun g2 ->
 		      change_in_concl None
-			(pattern_occs [([2], a)] 
+			(pattern_occs [((true,[2]), a)] 
 			   (pf_env g2)
 			   Evd.empty (pf_concl g2)) g2)
 	     (simplest_case a))) g);;
@@ -313,7 +313,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                clear [k];
                intros_using [k; h'; def];
 	       simpl_iter();
-               unfold_in_concl[([1], evaluable_of_global_reference func)];
+               unfold_in_concl[((true,[1]), evaluable_of_global_reference func)];
                list_rewrite true eqs; 
 	       apply_with_bindings
 		 (Lazy.force f_equal, 
@@ -539,7 +539,7 @@ let base_leaf_eq func eqs f_id g =
 		  [|mkApp (Lazy.force coq_S, [|mkVar p|]);
 		    mkApp(Lazy.force lt_n_Sn, [|mkVar p|]); f_id|])));
       simpl_iter();
-      unfold_in_concl [([1], evaluable_of_global_reference func)];
+      unfold_in_concl [((true,[1]), evaluable_of_global_reference func)];
       list_rewrite true eqs;
       apply (Lazy.force refl_equal)] g;;
 
