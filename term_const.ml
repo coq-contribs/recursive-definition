@@ -651,7 +651,7 @@ let recursive_definition f type_of_f r wf proofs eq =
   let term_id = add_suffix f "_terminate" in
   let functional_ref = declare_fun functional_id (IsDefinition Definition) res in
   let _ = com_terminate functional_id input_type r wf term_id proofs in
-  let term_ref = Nametab.locate (make_short_qualid term_id) in
+  let term_ref = Nametab.locate (qualid_of_ident term_id) in
   let f_ref = declare_f f (IsProof Lemma) input_type term_ref in
   let _ = message "start second proof" in
     com_eqn equation_id functional_ref f_ref term_ref eq;;
