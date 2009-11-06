@@ -149,6 +149,10 @@ let rec (find_call_occs: constr -> constr -> ((constr->constr)*constr)option) =
       | Fix(_) -> error "find_call_occs : Fix"
       | CoFix(_) -> error "find_call_occs : CoFix";;
 
+let coq_init_constant s =
+  Coqlib.gen_constant_in_modules "RecursiveDefinition" 
+    Coqlib.init_modules s;;
+
 let coq_constant s =
   Coqlib.gen_constant_in_modules "RecursiveDefinition" 
     (Coqlib.init_modules @ Coqlib.arith_modules) s;;
@@ -167,13 +171,13 @@ let find_reference sl s =
 let ssplus_lt = lazy(constant ["Term_const"] "SSplus_lt")
 let splus_lt = lazy(constant ["Term_const"] "Splus_lt")
 
-let refl_equal = lazy(coq_constant "refl_equal")
-let eq = lazy(coq_constant "eq")
-let ex = lazy(coq_constant "ex")
+let refl_equal = lazy(coq_init_constant "eq_refl")
+let eq = lazy(coq_init_constant "eq")
+let ex = lazy(coq_init_constant "ex")
 let coq_sig_ref = lazy(find_reference ["Coq";"Init";"Specif"] "sig")
-let coq_sig = lazy(coq_constant "sig")
-let coq_O = lazy(coq_constant "O")
-let coq_S = lazy(coq_constant "S")
+let coq_sig = lazy(coq_init_constant "sig")
+let coq_O = lazy(coq_init_constant "O")
+let coq_S = lazy(coq_init_constant "S")
 
 let gt_irrefl = lazy(coq_constant "gt_irrefl")
 let lt_n_O = lazy(coq_constant "lt_n_O")
@@ -188,8 +192,8 @@ let coq_plus = lazy(coq_constant "plus")
 
 (* These are specific to experiments in nat with lt as well_founded_relation,
    but this should be made more general. *)
-let nat = lazy(coq_constant "nat")
-let lt = lazy(coq_constant "lt")
+let nat = lazy(coq_init_constant "nat")
+let lt = lazy(coq_init_constant "lt")
 let lt_wf = lazy(coq_constant "lt_wf")
 
 let  mkCaseEq a =
