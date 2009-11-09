@@ -421,15 +421,16 @@ let start n_name input_type relation wf_thm =
      try
        let ids = ids_of_named_context (pf_hyps g) in
        let hrec = next_ident_away (hrec_id hyp_ids) (n_name::ids) in
-       let wf_c = mkApp(Lazy.force well_founded_induction,
-			[|input_type; relation; wf_thm|]) in
+       let wf_c = {elimindex = Some(-1);
+                   elimbody = mkApp(Lazy.force well_founded_induction,
+			[|input_type; relation; wf_thm|]),ImplicitBindings[]} in
        let x = next_ident_away (x_id hyp_ids) (hrec::n_name::ids) in
        let v =
 	 (fun g ->
 	    let v = 
 	      tclTHENLIST
 		[intro_using x;
-		 general_elim false (mkVar x, ImplicitBindings[]) (wf_c, ImplicitBindings[]);
+		 general_elim false (mkVar x, ImplicitBindings[]) wf_c;
 		 clear [x];
 		 intros_using [n_name; hrec]] g in
 	      v), hrec in 
@@ -467,7 +468,7 @@ let whole_start foncl input_type relation wf_thm preuves =
        v);;
 
 let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
-  let (evmap, env) = Command.get_current_context() in
+  let (evmap, env) = Lemmas.get_current_context() in
   let (comparison:constr)= interp_constr evmap env relation_ast in
   let (wf_thm:constr) = interp_constr evmap env wf_thm_ast in
   let (proofs_constr:constr list) =
@@ -478,7 +479,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
        (fun _ _ -> ());
      by (whole_start (reference_of_constr foncl_constr)
 	   input_type comparison wf_thm proofs_constr);
-     Command.save_named true);;
+     Lemmas.save_named true);;
 
 let ind_of_ref = function 
   | IndRef (ind,i) -> (ind,i)
@@ -622,7 +623,7 @@ let (com_eqn : identifier ->
       global_reference -> global_reference -> global_reference
       -> constr_expr -> unit) =
   fun eq_name functional_ref f_ref terminate_ref eq ->
-    let (evmap, env) = Command.get_current_context() in
+    let (evmap, env) = Lemmas.get_current_context() in
     let eq_constr = interp_constr evmap env eq in
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
@@ -636,7 +637,7 @@ let (com_eqn : identifier ->
 		 (instantiate_lambda 
 		    (def_of_const functional_constr)
 		    [f_constr; mkVar x])));
-       Command.save_named true);;
+       Lemmas.save_named true);;
 
 let recursive_definition f type_of_f r wf proofs eq =
   let function_type = interp_constr Evd.empty (Global.env()) type_of_f in
