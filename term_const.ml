@@ -27,6 +27,7 @@ open Pretyping
 open Safe_typing
 open Constrintern
 open Hiddentac
+open Namegen
 
 open Equality
 open Auto
