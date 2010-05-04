@@ -35,7 +35,7 @@ open Eauto
 
 open Genarg
 
-let prgoal g = msgnl (Printer.pr_goal (sig_it g));;
+let prgoal g = msgnl (Printer.pr_goal ( g));;
 
 let hyp_ids = List.map id_of_string ["x";"v";"k";"def";"p";"h";"n";"h'"; 
 				     "anonymous"; "teq"; "rec_res";
