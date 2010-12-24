@@ -22,7 +22,7 @@ open Proof_type
 open Vernacinterp
 open Pfedit
 open Topconstr
-open Rawterm
+open Glob_term
 open Pretyping
 open Safe_typing
 open Constrintern
@@ -492,17 +492,17 @@ let (value_f:constr -> global_reference -> constr) =
     let x_id = id_of_string "x" in
     let v_id = id_of_string "v" in
     let value =
-      RLambda
-      	(d0, Name x_id, Explicit, RDynamic(d0, constr_in a),
-	 RCases
+      GLambda
+      	(d0, Name x_id, Explicit, GDynamic(d0, constr_in a),
+	 GCases
 	   (d0,RegularStyle,None,
-	    [RApp(d0, RRef(d0,fterm), [RVar(d0, x_id)]),(Anonymous,None)],
+	    [GApp(d0, GRef(d0,fterm), [GVar(d0, x_id)]),(Anonymous,None)],
 	    [d0, [v_id], [PatCstr(d0,(ind_of_ref 
 					(Lazy.force coq_sig_ref),1),
 				  [PatVar(d0, Name v_id);
 				   PatVar(d0, Anonymous)],
 				  Anonymous)],
-	     RVar(d0,v_id)])) in
+	     GVar(d0,v_id)])) in
       Default.understand Evd.empty (Global.env()) value;;
 
 let (declare_fun : identifier -> logical_kind -> constr -> global_reference) =
