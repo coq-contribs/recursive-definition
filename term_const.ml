@@ -81,9 +81,11 @@ let rec getMutCase env t =
 let def_of_const t =
   match (kind_of_term t) with
       Const sp -> 
-	(try (match (Global.lookup_constant sp) with
-		  {const_body=Some c} -> Declarations.force c
-		|_ -> assert false)
+	(try
+	   let cb = Global.lookup_constant sp in
+	   match Declarations.body_of_constant cb with
+	       Some c -> Declarations.force c
+	     | _ -> assert false
 	 with _ -> assert false)
     |_ -> assert false
 ;;
