@@ -7,6 +7,7 @@ open Pp
 open Names
 open Libnames
 open Nameops
+open Errors
 open Util
 open Closure
 open RedFlags
