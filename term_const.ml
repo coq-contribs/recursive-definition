@@ -507,7 +507,7 @@ let (value_f:constr -> global_reference -> constr) =
 			       Anonymous)],
 	  GVar(d0,v_id)])
     in
-    let body = Default.understand Evd.empty env glob_body in
+    let body = understand Evd.empty env glob_body in
     it_mkLambda_or_LetIn body context
 
 let (declare_fun : identifier -> logical_kind -> constr -> global_reference) =
