@@ -332,7 +332,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                list_rewrite true eqs;
 	       apply_with_bindings
 		 (Lazy.force f_equal,
-		  ExplicitBindings[dummy_loc,NamedHyp (id_of_string "f"),
+		  ExplicitBindings[Loc.ghost,NamedHyp (id_of_string "f"),
 				   mkLambda(Name (id_of_string "xx"), result_type,
 					    fn (mkRel 1))]);
 	       default_full_auto];
@@ -498,7 +498,7 @@ let ind_of_ref = function
 
 let (value_f:constr -> global_reference -> constr) =
   fun a fterm ->
-    let d0 = dummy_loc in
+    let d0 = Loc.ghost in
     let x_id = id_of_string "x" in
     let v_id = id_of_string "v" in
     let context = [Name x_id, None, a] in
