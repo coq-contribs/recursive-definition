@@ -1,5 +1,4 @@
 -R . RecursiveDefinition
--byte
 term_const.ml4
 Term_const.v
 data.v 
