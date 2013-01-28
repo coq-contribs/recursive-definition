@@ -243,7 +243,7 @@ let rec  mk_intros_and_continue (extra_eqn:bool)
 
 let const_of_ref = function
     ConstRef kn -> kn
-  | _ -> anomaly "ConstRef expected"
+  | _ -> anomaly (Pp.str "ConstRef expected")
 
 let simpl_iter () =
   reduce
@@ -494,7 +494,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
 
 let ind_of_ref = function
   | IndRef (ind,i) -> (ind,i)
-  | _ -> anomaly "IndRef expected"
+  | _ -> anomaly (Pp.str "IndRef expected")
 
 let (value_f:constr -> global_reference -> constr) =
   fun a fterm ->
