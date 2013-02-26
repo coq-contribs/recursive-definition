@@ -90,8 +90,8 @@ let def_of_const t =
       Const sp ->
 	(try
 	   let cb = Global.lookup_constant sp in
-	   match Declarations.body_of_constant cb with
-	       Some c -> Declarations.force c
+	   match Declareops.body_of_constant cb with
+	       Some c -> Lazyconstr.force c
 	     | _ -> assert false
 	 with _ -> assert false)
     |_ -> assert false
