@@ -1,4 +1,5 @@
 open Term
+open Vars
 open Termops
 open Environ
 open Declarations
