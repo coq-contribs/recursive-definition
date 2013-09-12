@@ -488,7 +488,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (foncl_constr:constr) = global_reference fl in
     (start_proof thm_name
        (Global, Proof Lemma) (Environ.named_context_val env) (hyp_terminates fl)
-       (fun _ _ -> ());
+       None;
      by (whole_start (reference_of_constr foncl_constr)
 	   input_type comparison wf_thm proofs_constr);
      Lemmas.save_named true);;
@@ -520,7 +520,7 @@ let (value_f:constr -> global_reference -> constr) =
 
 let (declare_fun : identifier -> logical_kind -> constr -> global_reference) =
   fun f_id kind value ->
-    let ce = {const_entry_body = value;
+    let ce = {const_entry_body = Future.from_val (value, Declareops.no_seff);
 	      const_entry_type = None;
 	      const_entry_secctx = None;
           const_entry_opaque = false;
@@ -643,7 +643,7 @@ let (com_eqn : identifier ->
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
       (start_proof eq_name (Global, Proof Lemma)
-	 (Environ.named_context_val env) eq_constr (fun _ _ -> ());
+	 (Environ.named_context_val env) eq_constr None;
        by
 	 (start_equation f_ref terminate_ref
 	    (fun x ->
@@ -676,7 +676,7 @@ let recursive_definition f type_of_f r wf proofs eq =
   let _ = message "start second proof" in
     com_eqn equation_id functional_ref f_ref term_ref eq;;
 
-VERNAC COMMAND EXTEND RecursiveDefinition
+VERNAC COMMAND EXTEND RecursiveDefinition CLASSIFIED AS SIDEFF
   [ "Recursive" "Definition" ident(f) constr(type_of_f) constr(r) constr(wf)
       constr(proof) constr(eq) ] ->
     [ recursive_definition f type_of_f r wf [proof] eq ]
