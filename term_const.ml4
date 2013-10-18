@@ -488,7 +488,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (foncl_constr:constr) = global_reference fl in
     (start_proof thm_name
        (Global, Proof Lemma) (Environ.named_context_val env) (hyp_terminates fl)
-       None;
+       (fun _ _ -> ());
      by (whole_start (reference_of_constr foncl_constr)
 	   input_type comparison wf_thm proofs_constr);
      Lemmas.save_named true);;
@@ -643,7 +643,7 @@ let (com_eqn : identifier ->
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
       (start_proof eq_name (Global, Proof Lemma)
-	 (Environ.named_context_val env) eq_constr None;
+	 (Environ.named_context_val env) eq_constr (fun _ _ -> ());
        by
 	 (start_equation f_ref terminate_ref
 	    (fun x ->
