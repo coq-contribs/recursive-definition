@@ -219,7 +219,7 @@ let  mkCaseEq a =
 			(pattern_occs [(OnlyOccurrences[2], a)]
 			   (pf_env g2)
 			   Evd.empty (pf_concl g2)) g2)
-	     (simplest_case a))) g);;
+	     (Proofview.V82.of_tactic (simplest_case a)))) g);;
 
 let rec  mk_intros_and_continue (extra_eqn:bool)
     cont_function rec_ids func (eqs:constr list) expr g =
@@ -230,14 +230,14 @@ let rec  mk_intros_and_continue (extra_eqn:bool)
 			Name x -> x
                       | Anonymous -> ano_id hyp_ids ) in
 	  let new_n = next_ident_away n1 ids in
-	    tclTHEN (intro_using new_n)
+	    tclTHEN (Proofview.V82.of_tactic (intro_using new_n))
 	      (mk_intros_and_continue extra_eqn cont_function
 		 (new_n::rec_ids) func eqs
 		 (subst1 (mkVar new_n) b)) g
       | _ ->
 	  if extra_eqn then
 	    let teq = next_ident_away (id_of_string "teq") ids in
-	      tclTHEN (intro_using teq)
+	      tclTHEN (Proofview.V82.of_tactic (intro_using teq))
 		(cont_function (teq::rec_ids) func (mkVar teq::eqs) expr) g
 	  else
 	    cont_function rec_ids func eqs expr g;;
@@ -256,7 +256,7 @@ let simpl_iter () =
 let list_rewrite (rev:bool) (eqs: constr list) =
   tclREPEAT
     (List.fold_right
-       (fun eq i -> tclORELSE (rewriteLR eq) i)
+       (fun eq i -> tclORELSE (Proofview.V82.of_tactic (rewriteLR eq)) i)
        (if rev then (List.rev eqs) else eqs) (tclFAIL 0 (mt())));;
 
 let base_leaf (func:global_reference) eqs expr =
@@ -266,20 +266,20 @@ let base_leaf (func:global_reference) eqs expr =
      let k = next_ident_away (k_id hyp_ids) ids in
      let h = next_ident_away (h_id hyp_ids) (k::ids) in
      let _def = next_ident_away (def_id hyp_ids) (h::k::ids) in
-       tclTHENLIST [split (ImplicitBindings [expr]);
-		    split (ImplicitBindings [Lazy.force coq_O]);
-		    intro_using k;
-                    tclTHENS (simplest_case (mkVar k))
-                      [(tclTHEN (intro_using h)
-			  (tclTHEN (simplest_elim
+       tclTHENLIST [Proofview.V82.of_tactic (split (ImplicitBindings [expr]));
+		    Proofview.V82.of_tactic (split (ImplicitBindings [Lazy.force coq_O]));
+		    Proofview.V82.of_tactic (intro_using k);
+                    tclTHENS (Proofview.V82.of_tactic (simplest_case (mkVar k)))
+                      [(tclTHEN (Proofview.V82.of_tactic (intro_using h))
+			  (tclTHEN (Proofview.V82.of_tactic (simplest_elim
 				      (mkApp (Lazy.force gt_irrefl,
-					      [| Lazy.force coq_O |])))
-		             default_full_auto)); tclIDTAC];
-                    intros;
+					      [| Lazy.force coq_O |]))))
+		             (Proofview.V82.of_tactic default_full_auto))); tclIDTAC];
+                    Proofview.V82.of_tactic intros;
 		    simpl_iter();
 		    unfold_constr func;
                     list_rewrite true eqs;
-		    default_full_auto ] g);;
+		    Proofview.V82.of_tactic default_full_auto ] g);;
 
 (* La fonction est donnee en premier argument a la
    fonctionnelle suivie d'autres Lambdas et de Case ...
@@ -310,23 +310,23 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
        let h' = next_ident_away (h'_id hyp_ids)
 	 (def::k::heq::p::hspec::rec_res::ids) in
 	 tclTHENS
-	   (simplest_elim (mkApp(mkVar hrec, [|arg|])))
+	   (Proofview.V82.of_tactic (simplest_elim (mkApp(mkVar hrec, [|arg|]))))
            [tclTHENLIST
-	      [intros_using [rec_res ; hspec];
-	       split (ImplicitBindings [fn (mkVar rec_res)]);
-               simplest_elim (mkVar hspec);
+	      [Proofview.V82.of_tactic (intros_using [rec_res ; hspec]);
+	       Proofview.V82.of_tactic (split (ImplicitBindings [fn (mkVar rec_res)]));
+               Proofview.V82.of_tactic (simplest_elim (mkVar hspec));
                list_rewrite true eqs;
-	       intros_using [p; heq]; split (ImplicitBindings [s_p]);
-               intro_using k;
+	       Proofview.V82.of_tactic (intros_using [p; heq]); Proofview.V82.of_tactic (split (ImplicitBindings [s_p]));
+               Proofview.V82.of_tactic (intro_using k);
                tclTHENS
-		 (simplest_case (mkVar k))
+		 (Proofview.V82.of_tactic (simplest_case (mkVar k)))
 		 [tclTHENLIST
-		    [intro_using h';
-                     simplest_elim(mkApp(Lazy.force lt_n_O, [|s_p|]));
-                     default_full_auto];
+		    [Proofview.V82.of_tactic (intro_using h');
+                     Proofview.V82.of_tactic (simplest_elim(mkApp(Lazy.force lt_n_O, [|s_p|])));
+                     Proofview.V82.of_tactic default_full_auto];
 		  tclIDTAC];
                clear [k];
-               intros_using [k; h'; def];
+               Proofview.V82.of_tactic (intros_using [k; h'; def]);
 	       simpl_iter();
                unfold_in_concl
 		 [(OnlyOccurrences [1], evaluable_of_global_reference func)];
@@ -336,7 +336,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
 		  ExplicitBindings[Loc.ghost,NamedHyp (id_of_string "f"),
 				   mkLambda(Name (id_of_string "xx"), result_type,
 					    fn (mkRel 1))]);
-	       default_full_auto];
+	       Proofview.V82.of_tactic default_full_auto];
 	    tclTHENLIST
 	      [list_rewrite true eqs;
                List.fold_right
@@ -345,7 +345,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                       (tclCOMPLETE
 			 (tclTHENLIST
                             [h_simplest_eapply proof;
-                             tclORELSE default_full_auto e_assumption]))
+                             tclORELSE (Proofview.V82.of_tactic default_full_auto) e_assumption]))
                       tac)
                  proofs
                  (fun g ->
@@ -441,10 +441,10 @@ let start n_name input_type relation wf_thm =
 	 (fun g ->
 	    let v =
 	      tclTHENLIST
-		[intro_using x;
+		[Proofview.V82.of_tactic (intro_using x);
 		 general_elim false (mkVar x, ImplicitBindings[]) wf_c;
 		 clear [x];
-		 intros_using [n_name; hrec]] g in
+		 Proofview.V82.of_tactic (intros_using [n_name; hrec])] g in
 	      v), hrec in
 	 v
      with e -> msgerrnl(str "error in start"); raise e);;
@@ -489,8 +489,8 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
     (start_proof thm_name
        (Global, Proof Lemma) (Environ.named_context_val env) (hyp_terminates fl)
        (fun _ _ -> ());
-     by (whole_start (reference_of_constr foncl_constr)
-	   input_type comparison wf_thm proofs_constr);
+     ignore (by (Proofview.V82.tactic (whole_start (reference_of_constr foncl_constr)
+	   input_type comparison wf_thm proofs_constr)));
      Lemmas.save_named true);;
 
 let ind_of_ref = function
@@ -536,9 +536,9 @@ let start_equation (f:global_reference) (term_f:global_reference)
   let ids = ids_of_named_context (pf_hyps g) in
   let x = next_ident_away (x_id hyp_ids) ids in
     tclTHENLIST [
-      intro_using x;
+      Proofview.V82.of_tactic (intro_using x);
       unfold_constr f;
-      simplest_case (mkApp (constr_of_reference term_f, [| mkVar x|]));
+      Proofview.V82.of_tactic (simplest_case (mkApp (constr_of_reference term_f, [| mkVar x|])));
       cont_tactic x] g;;
 
 let base_leaf_eq func eqs f_id g =
@@ -550,14 +550,14 @@ let base_leaf_eq func eqs f_id g =
   let heq1 = next_ident_away (heq_id hyp_ids) (heq::v::p::k::ids) in
   let hex = next_ident_away (hex_id hyp_ids) (heq1::heq::v::p::k::ids) in
     tclTHENLIST [
-      intros_using [v; hex];
-      simplest_elim (mkVar hex);
-      intros_using [p;heq1];
+      Proofview.V82.of_tactic (intros_using [v; hex]);
+      Proofview.V82.of_tactic (simplest_elim (mkVar hex));
+      Proofview.V82.of_tactic (intros_using [p;heq1]);
       tclTRY
-	(rewriteRL
+	(Proofview.V82.of_tactic (rewriteRL
 	   (mkApp(mkVar heq1,
 		  [|mkApp (Lazy.force coq_S, [|mkVar p|]);
-		    mkApp(Lazy.force lt_n_Sn, [|mkVar p|]); f_id|])));
+		    mkApp(Lazy.force lt_n_Sn, [|mkVar p|]); f_id|]))));
       simpl_iter();
       unfold_in_concl [(OnlyOccurrences [1], evaluable_of_global_reference func)];
       list_rewrite true eqs;
@@ -586,29 +586,29 @@ let rec_leaf_eq termine f ids functional eqs expr fn args =
   let c_p = mkVar p in
   let c_p' = mkVar p' in
     tclTHENLIST
-      [intros_using [v;hex];
-       simplest_elim (mkVar hex);
-       intros_using [p;heq1];
+      [Proofview.V82.of_tactic (intros_using [v;hex]);
+       Proofview.V82.of_tactic (simplest_elim (mkVar hex));
+       Proofview.V82.of_tactic (intros_using [p;heq1]);
        mkCaseEq (mkApp(termine, [| args |]));
-       intros_using [v';hex'];
-       simplest_elim (mkVar hex');
-       intros_using [p'];
-       rewriteRL
+       Proofview.V82.of_tactic (intros_using [v';hex']);
+       Proofview.V82.of_tactic (simplest_elim (mkVar hex'));
+       Proofview.V82.of_tactic (intros_using [p']);
+       Proofview.V82.of_tactic (rewriteRL
 	 (mkApp
 	    (mkVar heq1,
 	     [| f_S(f_S(f_plus c_p c_p'));
-		mkApp(Lazy.force ssplus_lt, [|c_p;c_p'|]); f|]));
+		mkApp(Lazy.force ssplus_lt, [|c_p;c_p'|]); f|])));
        simpl_iter();
        unfold_constr (reference_of_constr functional);
        list_rewrite true eqs;
-       intros_using [heq2;heq3];
-       tclTRY (rewriteLR (mkVar heq3));
-       rewriteRL
+       Proofview.V82.of_tactic (intros_using [heq2;heq3]);
+       tclTRY (Proofview.V82.of_tactic (rewriteLR (mkVar heq3)));
+       Proofview.V82.of_tactic (rewriteRL
 	 (mkApp
 	    (mkVar heq2,
 	     [| f_S(f_plus c_p c_p');
-		mkApp(Lazy.force splus_lt, [|c_p;c_p'|]); f|]));
-       default_full_auto;
+		mkApp(Lazy.force splus_lt, [|c_p;c_p'|]); f|])));
+       Proofview.V82.of_tactic default_full_auto;
        (fun g-> prgoal g;tclIDTAC g)];;
 
 let rec prove_eq (termine:constr) (f:constr)
@@ -645,13 +645,13 @@ let (com_eqn : identifier ->
       (start_proof eq_name (Global, Proof Lemma)
 	 (Environ.named_context_val env) eq_constr (fun _ _ -> ());
        by
-	 (start_equation f_ref terminate_ref
+	 (Proofview.V82.tactic (start_equation f_ref terminate_ref
 	    (fun x ->
 	       prove_eq (constr_of_reference terminate_ref)
 		 f_constr [x] functional_constr []
 		 (instantiate_lambda
 		    (def_of_const functional_constr)
-		    [f_constr; mkVar x])));
+		    [f_constr; mkVar x]))));
        Lemmas.save_named true);;
 
 let recursive_definition f type_of_f r wf proofs eq =
