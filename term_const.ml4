@@ -29,7 +29,6 @@ open Glob_term
 open Pretyping
 open Safe_typing
 open Constrintern
-open Hiddentac
 open Namegen
 open Genredexpr
 open Locus
@@ -344,7 +343,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                     tclORELSE
                       (tclCOMPLETE
 			 (tclTHENLIST
-                            [h_simplest_eapply proof;
+                            [Simple.eapply proof;
                              tclORELSE (Proofview.V82.of_tactic default_full_auto) e_assumption]))
                       tac)
                  proofs
