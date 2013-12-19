@@ -487,10 +487,10 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (foncl_constr:constr) = global_reference fl in
     (start_proof thm_name
        (Global, Proof Lemma) (Environ.named_context_val env) (hyp_terminates fl)
-       (fun _ _ -> ());
+       (fun _ -> ());
      ignore (by (Proofview.V82.tactic (whole_start (reference_of_constr foncl_constr)
 	   input_type comparison wf_thm proofs_constr)));
-     Lemmas.save_named true);;
+     Lemmas.save_proof (Vernacexpr.Proved(true,None)));;
 
 let ind_of_ref = function
   | IndRef (ind,i) -> (ind,i)
@@ -642,7 +642,7 @@ let (com_eqn : identifier ->
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
       (start_proof eq_name (Global, Proof Lemma)
-	 (Environ.named_context_val env) eq_constr (fun _ _ -> ());
+	 (Environ.named_context_val env) eq_constr (fun _ -> ());
        by
 	 (Proofview.V82.tactic (start_equation f_ref terminate_ref
 	    (fun x ->
@@ -651,7 +651,7 @@ let (com_eqn : identifier ->
 		 (instantiate_lambda
 		    (def_of_const functional_constr)
 		    [f_constr; mkVar x]))));
-       Lemmas.save_named true);;
+       Lemmas.save_proof (Vernacexpr.Proved(true,None)));;
 
 let recursive_definition f type_of_f r wf proofs eq =
   let function_type = interp_constr Evd.empty (Global.env()) type_of_f in
