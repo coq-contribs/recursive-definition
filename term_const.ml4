@@ -484,13 +484,13 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (wf_thm:constr) = interp_constr evmap env wf_thm_ast in
   let (proofs_constr:constr list) =
     List.map (fun x -> interp_constr evmap env x) proofs in
-  let (foncl_constr:constr) = global_reference fl in
-    (start_proof thm_name
-       (Global, Proof Lemma) (Environ.named_context_val env) (hyp_terminates fl)
-       (fun _ -> ());
-     ignore (by (Proofview.V82.tactic (whole_start (reference_of_constr foncl_constr)
-	   input_type comparison wf_thm proofs_constr)));
-     Lemmas.save_proof (Vernacexpr.Proved(true,None)));;
+  let foncl = reference_of_constr (global_reference fl) in
+  let sign = Environ.named_context_val env in
+  let hook _ _ = () in
+  let () = Lemmas.start_proof thm_name (Global, Proof Lemma) ~sign (hyp_terminates fl) hook in
+  let tac = whole_start foncl input_type comparison wf_thm proofs_constr in
+  let _ = by (Proofview.V82.tactic tac) in
+  Lemmas.save_proof (Vernacexpr.Proved (true, None))
 
 let ind_of_ref = function
   | IndRef (ind,i) -> (ind,i)
