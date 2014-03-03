@@ -124,7 +124,7 @@ let evaluable_of_global_reference r =
 let rec (find_call_occs: constr -> constr -> ((constr->constr)*constr)option) =
   fun f expr ->
     match (kind_of_term expr) with
-	App (g, args) when g = f ->
+	App (g, args) when Constr.equal g f ->
 	  (* For now, we suppose that the function we work on
 	     takes only one argument. *)
 	  Some ((fun x -> x), args.(0))
