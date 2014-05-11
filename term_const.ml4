@@ -87,7 +87,7 @@ let rec getMutCase env t =
 
 let def_of_const t =
   match (kind_of_term t) with
-      Const sp ->
+      Const (sp, _) ->
 	(try
 	   let cb = Global.lookup_constant sp in
 	   match Declareops.body_of_constant cb with
@@ -112,7 +112,7 @@ let a_of_case t =
 
 let evaluable_reference t =
   match kind_of_term t with
-      Const sp -> EvalConstRef sp
+      Const (sp, _) -> EvalConstRef sp
     | _ -> assert false;;
 
 let evaluable_of_global_reference r =
@@ -149,6 +149,7 @@ let rec (find_call_occs: constr -> constr -> ((constr->constr)*constr)option) =
       | Prod(_,_,_) -> error "find_call_occs : Prod"
       | Lambda(_,_,_) -> error "find_call_occs : Lambda"
       | LetIn(_,_,_,_) -> error "find_call_occs : let in"
+      | Proj _ -> error "find_call_occs : Proj"
       | Const(_) -> None
       | Ind(_) -> None
       | Construct (_, _) -> None
@@ -168,7 +169,7 @@ let coq_constant s =
     (Coqlib.init_modules @ Coqlib.arith_modules) s;;
 
 let constant sl s =
-  constr_of_reference
+  Universes.constr_of_reference
     (locate (make_qualid(Names.make_dirpath
 			   (List.map id_of_string (List.rev sl)))
 	       (id_of_string s)));;
@@ -197,7 +198,7 @@ let f_equal = lazy(coq_constant "f_equal")
 let well_founded_induction = lazy(coq_constant "well_founded_induction")
 
 let iter_ref = lazy(find_reference ["Term_const"] "iter")
-let iter = lazy(constr_of_reference (Lazy.force iter_ref))
+let iter = lazy(Universes.constr_of_reference (Lazy.force iter_ref))
 let coq_plus = lazy(coq_constant "plus")
 
 (* These are specific to experiments in nat with lt as well_founded_relation,
@@ -292,7 +293,7 @@ let get_f foncl =
 let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
   (*  let _ = msgnl(str "entering rec_leaf") in *)
   let fn, arg =
-    (match (find_call_occs (mkVar (get_f (constr_of_reference func))) expr) with
+    (match (find_call_occs (mkVar (get_f (Universes.constr_of_reference func))) expr) with
          Some (a, b) -> a,b
        | None -> failwith "rec_leaf called in a wrong context
                                           (no recursive call)") in
@@ -382,7 +383,7 @@ let rec (proveterminate:identifier -> (constr list) -> constr ->
 				  | Some x ->
 				      (try
 					 rec_leaf hrec preuves
-					   (result_type (constr_of_reference func)) func eqs expr
+					   (result_type (Universes.constr_of_reference func)) func eqs expr
 				       with e -> (msgerrnl (str "failure in recursive case");
 						  raise e))))
 	    | _ -> (match (find_call_occs  f_constr expr) with
@@ -393,7 +394,7 @@ let rec (proveterminate:identifier -> (constr list) -> constr ->
 		      | Some x ->
 			  (try
 			     rec_leaf hrec preuves
-			       (result_type (constr_of_reference func)) func eqs expr
+			       (result_type (Universes.constr_of_reference func)) func eqs expr
 			   with e -> (msgerrnl (str "failure in recursive case");
 				      raise e))) in
 	  (*  let _ = msgnl(str "exiting proveterminate") in *)
@@ -459,7 +460,7 @@ let whole_start foncl input_type relation wf_thm preuves =
   (fun g ->
      let v =
        let ids = ids_of_named_context (pf_hyps g) in
-       let foncl_body = (def_of_const (constr_of_reference foncl)) in
+       let foncl_body = (def_of_const (Universes.constr_of_reference foncl)) in
        let (f_name, _, body1) = destLambda foncl_body in
        let f_id =
 	 match f_name with
@@ -480,14 +481,14 @@ let whole_start foncl input_type relation wf_thm preuves =
 
 let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (evmap, env) = Lemmas.get_current_context() in
-  let (comparison:constr)= interp_constr evmap env relation_ast in
-  let (wf_thm:constr) = interp_constr evmap env wf_thm_ast in
+  let ((comparison:constr), _)= interp_constr evmap env relation_ast in
+  let ((wf_thm:constr), _) = interp_constr evmap env wf_thm_ast in
   let (proofs_constr:constr list) =
-    List.map (fun x -> interp_constr evmap env x) proofs in
+    List.map (fun x -> fst (interp_constr evmap env x)) proofs in
   let foncl = reference_of_constr (global_reference fl) in
   let sign = Environ.named_context_val env in
   let hook _ _ = () in
-  let () = Lemmas.start_proof thm_name (Global, Proof Lemma) ~sign (hyp_terminates fl) hook in
+  let () = Lemmas.start_proof thm_name (Global, false, Proof Lemma) ~sign (hyp_terminates fl, Univ.ContextSet.empty (** FIXME *)) hook in
   let tac = whole_start foncl input_type comparison wf_thm proofs_constr in
   let _ = by (Proofview.V82.tactic tac) in
   Lemmas.save_proof (Vernacexpr.Proved (true, None))
@@ -506,7 +507,7 @@ let (value_f:constr -> global_reference -> constr) =
     let glob_body =
       GCases
 	(d0,RegularStyle,None,
-	 [GApp(d0, GRef(d0,fterm), [GVar(d0, x_id)]),(Anonymous,None)],
+	 [GApp(d0, GRef(d0,fterm, None), [GVar(d0, x_id)]),(Anonymous,None)],
 	 [d0, [v_id], [PatCstr(d0,(ind_of_ref
 				     (Lazy.force coq_sig_ref),1),
 			       [PatVar(d0, Name v_id);
@@ -514,16 +515,19 @@ let (value_f:constr -> global_reference -> constr) =
 			       Anonymous)],
 	  GVar(d0,v_id)])
     in
-    let body = understand Evd.empty env glob_body in
+    let body, _ = understand Evd.empty env glob_body in
     it_mkLambda_or_LetIn body context
 
 let (declare_fun : identifier -> logical_kind -> constr -> global_reference) =
   fun f_id kind value ->
-    let ce = {const_entry_body = Future.from_val (value, Declareops.no_seff);
+    let ce = {const_entry_body = Future.from_val ((value, Univ.ContextSet.empty (** FIXME *)), Declareops.no_seff);
 	      const_entry_type = None;
 	      const_entry_secctx = None;
           const_entry_opaque = false;
           const_entry_inline_code = false;
+          const_entry_polymorphic = false;
+          const_entry_universes = Univ.UContext.empty; (** FIXME *)
+          const_entry_proj = None;
           const_entry_feedback = None } in
       ConstRef(declare_constant f_id (DefinitionEntry ce, kind));;
 
@@ -538,7 +542,7 @@ let start_equation (f:global_reference) (term_f:global_reference)
     tclTHENLIST [
       Proofview.V82.of_tactic (intro_using x);
       unfold_constr f;
-      Proofview.V82.of_tactic (simplest_case (mkApp (constr_of_reference term_f, [| mkVar x|])));
+      Proofview.V82.of_tactic (simplest_case (mkApp (Universes.constr_of_reference term_f, [| mkVar x|])));
       cont_tactic x] g;;
 
 let base_leaf_eq func eqs f_id g =
@@ -639,15 +643,15 @@ let (com_eqn : identifier ->
       -> constr_expr -> unit) =
   fun eq_name functional_ref f_ref terminate_ref eq ->
     let (evmap, env) = Lemmas.get_current_context() in
-    let eq_constr = interp_constr evmap env eq in
-    let functional_constr = (constr_of_reference functional_ref) in
-    let f_constr = (constr_of_reference f_ref) in
-      (start_proof eq_name (Global, Proof Lemma)
-	 (Environ.named_context_val env) eq_constr (fun _ -> ());
+    let eq_constr, ctx = interp_constr evmap env eq in
+    let functional_constr = (Universes.constr_of_reference functional_ref) in
+    let f_constr = (Universes.constr_of_reference f_ref) in
+      (start_proof eq_name (Global, false, Proof Lemma)
+	 (Environ.named_context_val env) (eq_constr, Evd.evar_universe_context_set ctx) (fun _ -> ());
        by
 	 (Proofview.V82.tactic (start_equation f_ref terminate_ref
 	    (fun x ->
-	       prove_eq (constr_of_reference terminate_ref)
+	       prove_eq (Universes.constr_of_reference terminate_ref)
 		 f_constr [x] functional_constr []
 		 (instantiate_lambda
 		    (def_of_const functional_constr)
@@ -655,9 +659,9 @@ let (com_eqn : identifier ->
        Lemmas.save_proof (Vernacexpr.Proved(true,None)));;
 
 let recursive_definition f type_of_f r wf proofs eq =
-  let function_type = interp_constr Evd.empty (Global.env()) type_of_f in
+  let function_type, _ = interp_constr Evd.empty (Global.env()) type_of_f in
   let env = push_rel (Name f,None,function_type) (Global.env()) in
-  let res = match kind_of_term (interp_constr Evd.empty env eq) with
+  let res = match kind_of_term (fst (interp_constr Evd.empty env eq)) with
       Prod(Name name_of_var,type_of_var,e) ->
 	(match kind_of_term e with
 	     App(e,[|type_e;gche;b|]) ->
