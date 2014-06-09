@@ -487,7 +487,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
     List.map (fun x -> fst (interp_constr evmap env x)) proofs in
   let foncl = reference_of_constr (global_reference fl) in
   let sign = Environ.named_context_val env in
-  let hook _ _ = () in
+  let hook = Lemmas.mk_hook (fun _ _ -> ()) in
   let () = Lemmas.start_proof thm_name (Global, false, Proof Lemma) ~sign (hyp_terminates fl, Univ.ContextSet.empty (** FIXME *)) hook in
   let tac = whole_start foncl input_type comparison wf_thm proofs_constr in
   let _ = by (Proofview.V82.tactic tac) in
