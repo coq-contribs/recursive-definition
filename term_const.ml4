@@ -527,7 +527,7 @@ let (declare_fun : identifier -> logical_kind -> constr -> global_reference) =
           const_entry_inline_code = false;
           const_entry_polymorphic = false;
           const_entry_universes = Univ.UContext.empty; (** FIXME *)
-          const_entry_proj = None;
+          const_entry_proj = false;
           const_entry_feedback = None } in
       ConstRef(declare_constant f_id (DefinitionEntry ce, kind));;
 
