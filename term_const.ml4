@@ -168,6 +168,8 @@ let coq_constant s =
   Coqlib.gen_constant_in_modules "RecursiveDefinition"
     (Coqlib.init_modules @ Coqlib.arith_modules) s;;
 
+let constr_of_reference = Universes.constr_of_reference
+
 let constant sl s =
   Universes.constr_of_reference
     (locate (make_qualid(Names.make_dirpath
@@ -215,7 +217,7 @@ let  mkCaseEq a =
        (tclTHEN (generalize [mkApp(Lazy.force refl_equal,
 				   [| type_of_a; a|])])
 	  (tclTHEN (fun g2 ->
-		      change_in_concl None
+		      change_concl
 			(pattern_occs [(OnlyOccurrences[2], a)]
 			   (pf_env g2)
 			   Evd.empty (pf_concl g2)) g2)
@@ -481,14 +483,15 @@ let whole_start foncl input_type relation wf_thm preuves =
 
 let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (evmap, env) = Lemmas.get_current_context() in
-  let ((comparison:constr), _)= interp_constr evmap env relation_ast in
+  let ((comparison:constr), ctx)= interp_constr evmap env relation_ast in
   let ((wf_thm:constr), _) = interp_constr evmap env wf_thm_ast in
   let (proofs_constr:constr list) =
     List.map (fun x -> fst (interp_constr evmap env x)) proofs in
   let foncl = reference_of_constr (global_reference fl) in
   let sign = Environ.named_context_val env in
-  let hook = Lemmas.mk_hook (fun _ _ -> ()) in
-  let () = Lemmas.start_proof thm_name (Global, false, Proof Lemma) ~sign (hyp_terminates fl, Univ.ContextSet.empty (** FIXME *)) hook in
+  let hook _ _ = () in
+  let () = Lemmas.start_proof thm_name (Global, false, Proof Lemma) ctx ~sign (hyp_terminates fl) 
+    (Lemmas.mk_hook hook) in
   let tac = whole_start foncl input_type comparison wf_thm proofs_constr in
   let _ = by (Proofview.V82.tactic tac) in
   Lemmas.save_proof (Vernacexpr.Proved (true, None))
@@ -497,7 +500,7 @@ let ind_of_ref = function
   | IndRef (ind,i) -> (ind,i)
   | _ -> anomaly (Pp.str "IndRef expected")
 
-let (value_f:constr -> global_reference -> constr) =
+let (value_f:constr -> global_reference -> constr Evd.in_evar_universe_context) =
   fun a fterm ->
     let d0 = Loc.ghost in
     let x_id = id_of_string "x" in
@@ -515,20 +518,20 @@ let (value_f:constr -> global_reference -> constr) =
 			       Anonymous)],
 	  GVar(d0,v_id)])
     in
-    let body, _ = understand Evd.empty env glob_body in
-    it_mkLambda_or_LetIn body context
+    let body, ctx = understand Evd.empty env glob_body in
+    it_mkLambda_or_LetIn body context, ctx
 
-let (declare_fun : identifier -> logical_kind -> constr -> global_reference) =
+let (declare_fun : identifier -> logical_kind -> (constr Evd.in_evar_universe_context) -> global_reference) =
   fun f_id kind value ->
-    let ce = {const_entry_body = Future.from_val ((value, Univ.ContextSet.empty (** FIXME *)), Declareops.no_seff);
+    let ce = {const_entry_body = Future.from_val ((fst value, Univ.ContextSet.empty), Declareops.no_seff);
 	      const_entry_type = None;
 	      const_entry_secctx = None;
-          const_entry_opaque = false;
-          const_entry_inline_code = false;
-          const_entry_polymorphic = false;
-          const_entry_universes = Univ.UContext.empty; (** FIXME *)
-          const_entry_proj = false;
-          const_entry_feedback = None } in
+              const_entry_opaque = false;
+              const_entry_inline_code = false;
+	      const_entry_polymorphic = false;
+	      const_entry_proj = false;
+	      const_entry_universes = Evd.evar_context_universe_context (snd value);
+              const_entry_feedback = None } in
       ConstRef(declare_constant f_id (DefinitionEntry ce, kind));;
 
 let (declare_f : identifier -> logical_kind -> constr -> global_reference -> global_reference) =
@@ -644,10 +647,10 @@ let (com_eqn : identifier ->
   fun eq_name functional_ref f_ref terminate_ref eq ->
     let (evmap, env) = Lemmas.get_current_context() in
     let eq_constr, ctx = interp_constr evmap env eq in
-    let functional_constr = (Universes.constr_of_reference functional_ref) in
-    let f_constr = (Universes.constr_of_reference f_ref) in
-      (start_proof eq_name (Global, false, Proof Lemma)
-	 (Environ.named_context_val env) (eq_constr, Evd.evar_universe_context_set ctx) (fun _ -> ());
+    let functional_constr = (constr_of_reference functional_ref) in
+    let f_constr = (constr_of_reference f_ref) in
+      (start_proof eq_name (Global, false, Proof Lemma) ctx
+	 (Environ.named_context_val env) eq_constr (fun _ -> ());
        by
 	 (Proofview.V82.tactic (start_equation f_ref terminate_ref
 	    (fun x ->
@@ -659,9 +662,10 @@ let (com_eqn : identifier ->
        Lemmas.save_proof (Vernacexpr.Proved(true,None)));;
 
 let recursive_definition f type_of_f r wf proofs eq =
-  let function_type, _ = interp_constr Evd.empty (Global.env()) type_of_f in
+  let function_type, ctx = interp_constr Evd.empty (Global.env()) type_of_f in
   let env = push_rel (Name f,None,function_type) (Global.env()) in
-  let res = match kind_of_term (fst (interp_constr Evd.empty env eq)) with
+  let eqc, ctx = (interp_constr (Evd.from_env ~ctx env) env eq) in
+  let res = match kind_of_term eqc with
       Prod(Name name_of_var,type_of_var,e) ->
 	(match kind_of_term e with
 	     App(e,[|type_e;gche;b|]) ->
@@ -673,7 +677,7 @@ let recursive_definition f type_of_f r wf proofs eq =
   let equation_id = add_suffix f "_equation" in
   let functional_id =  add_suffix f "_F" in
   let term_id = add_suffix f "_terminate" in
-  let functional_ref = declare_fun functional_id (IsDefinition Definition) res in
+  let functional_ref = declare_fun functional_id (IsDefinition Definition) (res, ctx) in
   let _ = com_terminate functional_id input_type r wf term_id proofs in
   let term_ref = Nametab.locate (qualid_of_ident term_id) in
   let f_ref = declare_f f (IsProof Lemma) input_type term_ref in
