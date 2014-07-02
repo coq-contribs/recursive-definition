@@ -1,3 +1,4 @@
+-I .
 -R . RecursiveDefinition
 term_const.ml4
 Term_const.v
