@@ -437,14 +437,15 @@ let start n_name input_type relation wf_thm =
        let hrec = next_ident_away (hrec_id hyp_ids) (n_name::ids) in
        let wf_c = {elimindex = Some(-1);
                    elimbody = mkApp(Lazy.force well_founded_induction,
-			[|input_type; relation; wf_thm|]),ImplicitBindings[]} in
+			[|input_type; relation; wf_thm|]),ImplicitBindings[];
+                   elimrename = None} in
        let x = next_ident_away (x_id hyp_ids) (hrec::n_name::ids) in
        let v =
 	 (fun g ->
 	    let v =
 	      tclTHENLIST
 		[Proofview.V82.of_tactic (intro_using x);
-		 general_elim false (mkVar x, ImplicitBindings[]) wf_c;
+		 general_elim false None (mkVar x, ImplicitBindings[]) wf_c;
 		 clear [x];
 		 Proofview.V82.of_tactic (intros_using [n_name; hrec])] g in
 	      v), hrec in
