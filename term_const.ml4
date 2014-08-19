@@ -333,11 +333,11 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                unfold_in_concl
 		 [(OnlyOccurrences [1], evaluable_of_global_reference func)];
                list_rewrite true eqs;
-	       apply_with_bindings
+	       Proofview.V82.of_tactic (apply_with_bindings
 		 (Lazy.force f_equal,
 		  ExplicitBindings[Loc.ghost,NamedHyp (id_of_string "f"),
 				   mkLambda(Name (id_of_string "xx"), result_type,
-					    fn (mkRel 1))]);
+					    fn (mkRel 1))]));
 	       Proofview.V82.of_tactic default_full_auto];
 	    tclTHENLIST
 	      [list_rewrite true eqs;
@@ -346,7 +346,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                     tclORELSE
                       (tclCOMPLETE
 			 (tclTHENLIST
-                            [Simple.eapply proof;
+                            [Proofview.V82.of_tactic (Simple.eapply proof);
                              tclORELSE (Proofview.V82.of_tactic default_full_auto) e_assumption]))
                       tac)
                  proofs
@@ -445,7 +445,7 @@ let start n_name input_type relation wf_thm =
 	    let v =
 	      tclTHENLIST
 		[Proofview.V82.of_tactic (intro_using x);
-		 general_elim false None (mkVar x, ImplicitBindings[]) wf_c;
+		 Proofview.V82.of_tactic (general_elim false None (mkVar x, ImplicitBindings[]) wf_c);
 		 clear [x];
 		 Proofview.V82.of_tactic (intros_using [n_name; hrec])] g in
 	      v), hrec in
@@ -569,7 +569,7 @@ let base_leaf_eq func eqs f_id g =
       simpl_iter();
       unfold_in_concl [(OnlyOccurrences [1], evaluable_of_global_reference func)];
       list_rewrite true eqs;
-      apply (Lazy.force refl_equal)] g;;
+      Proofview.V82.of_tactic (apply (Lazy.force refl_equal))] g;;
 
 let f_S t = mkApp(Lazy.force coq_S, [|t|]);;
 let f_plus t1 t2 = mkApp(Lazy.force coq_plus, [|t1;t2|]);;
@@ -652,14 +652,14 @@ let (com_eqn : identifier ->
     let f_constr = (constr_of_reference f_ref) in
       (start_proof eq_name (Global, false, Proof Lemma) ctx
 	 (Environ.named_context_val env) eq_constr (fun _ -> ());
-       by
+       ignore (by
 	 (Proofview.V82.tactic (start_equation f_ref terminate_ref
 	    (fun x ->
 	       prove_eq (Universes.constr_of_reference terminate_ref)
 		 f_constr [x] functional_constr []
 		 (instantiate_lambda
 		    (def_of_const functional_constr)
-		    [f_constr; mkVar x]))));
+		    [f_constr; mkVar x])))));
        Lemmas.save_proof (Vernacexpr.Proved(true,None)));;
 
 let recursive_definition f type_of_f r wf proofs eq =
