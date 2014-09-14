@@ -530,7 +530,6 @@ let (declare_fun : identifier -> logical_kind -> (constr Evd.in_evar_universe_co
               const_entry_opaque = false;
               const_entry_inline_code = false;
 	      const_entry_polymorphic = false;
-	      const_entry_proj = None;
 	      const_entry_universes = Evd.evar_context_universe_context (snd value);
               const_entry_feedback = None } in
       ConstRef(declare_constant f_id (DefinitionEntry ce, kind));;
