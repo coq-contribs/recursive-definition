@@ -484,10 +484,10 @@ let whole_start foncl input_type relation wf_thm preuves =
 
 let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let (evmap, env) = Lemmas.get_current_context() in
-  let ((comparison:constr), ctx)= interp_constr evmap env relation_ast in
-  let ((wf_thm:constr), _) = interp_constr evmap env wf_thm_ast in
+  let ((comparison:constr), ctx)= interp_constr env evmap relation_ast in
+  let ((wf_thm:constr), _) = interp_constr env evmap wf_thm_ast in
   let (proofs_constr:constr list) =
-    List.map (fun x -> fst (interp_constr evmap env x)) proofs in
+    List.map (fun x -> fst (interp_constr env evmap x)) proofs in
   let foncl = reference_of_constr (global_reference fl) in
   let sign = Environ.named_context_val env in
   let hook _ _ = () in
@@ -519,7 +519,7 @@ let (value_f:constr -> global_reference -> constr Evd.in_evar_universe_context) 
 			       Anonymous)],
 	  GVar(d0,v_id)])
     in
-    let body, ctx = understand Evd.empty env glob_body in
+    let body, ctx = understand env Evd.empty glob_body in
     it_mkLambda_or_LetIn body context, ctx
 
 let (declare_fun : identifier -> logical_kind -> (constr Evd.in_evar_universe_context) -> global_reference) =
@@ -647,7 +647,7 @@ let (com_eqn : identifier ->
       -> constr_expr -> unit) =
   fun eq_name functional_ref f_ref terminate_ref eq ->
     let (evmap, env) = Lemmas.get_current_context() in
-    let eq_constr, ctx = interp_constr evmap env eq in
+    let eq_constr, ctx = interp_constr env evmap eq in
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
       (start_proof eq_name (Global, false, Proof Lemma) ctx
@@ -663,9 +663,9 @@ let (com_eqn : identifier ->
        Lemmas.save_proof (Vernacexpr.Proved(true,None)));;
 
 let recursive_definition f type_of_f r wf proofs eq =
-  let function_type, ctx = interp_constr Evd.empty (Global.env()) type_of_f in
+  let function_type, ctx = interp_constr (Global.env()) Evd.empty type_of_f in
   let env = push_rel (Name f,None,function_type) (Global.env()) in
-  let eqc, ctx = (interp_constr (Evd.from_env ~ctx env) env eq) in
+  let eqc, ctx = (interp_constr env (Evd.from_env ~ctx env) eq) in
   let res = match kind_of_term eqc with
       Prod(Name name_of_var,type_of_var,e) ->
 	(match kind_of_term e with
