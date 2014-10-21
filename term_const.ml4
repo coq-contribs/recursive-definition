@@ -89,8 +89,7 @@ let def_of_const t =
   match (kind_of_term t) with
       Const (sp, _) ->
 	(try
-	   let cb = Global.lookup_constant sp in
-	   match Declareops.body_of_constant cb with
+	   match Global.body_of_constant sp with
 	       Some c -> c
 	     | _ -> assert false
 	 with _ -> assert false)
