@@ -217,9 +217,9 @@ let  mkCaseEq a =
 				   [| type_of_a; a|])])
 	  (tclTHEN (fun g2 ->
 		      change_concl
-			(pattern_occs [(OnlyOccurrences[2], a)]
+			(snd (pattern_occs [(OnlyOccurrences[2], a)]
 			   (pf_env g2)
-			   Evd.empty (pf_concl g2)) g2)
+			   Evd.empty (pf_concl g2))) g2)
 	     (Proofview.V82.of_tactic (simplest_case a)))) g);;
 
 let rec  mk_intros_and_continue (extra_eqn:bool)
@@ -490,7 +490,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let foncl = reference_of_constr (global_reference fl) in
   let sign = Environ.named_context_val env in
   let hook _ _ = () in
-  let () = Lemmas.start_proof thm_name (Global, false, Proof Lemma) ctx ~sign (hyp_terminates fl) 
+  let () = Lemmas.start_proof thm_name (Global, false, Proof Lemma) (Evd.from_env ~ctx Environ.empty_env) ~sign (hyp_terminates fl) 
     (Lemmas.mk_hook hook) in
   let tac = whole_start foncl input_type comparison wf_thm proofs_constr in
   let _ = by (Proofview.V82.tactic tac) in
@@ -648,7 +648,8 @@ let (com_eqn : identifier ->
     let eq_constr, ctx = interp_constr env evmap eq in
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
-      (start_proof eq_name (Global, false, Proof Lemma) ctx
+      (start_proof eq_name (Global, false, Proof Lemma)
+         (Evd.from_env ~ctx Environ.empty_env)
 	 (Environ.named_context_val env) eq_constr (fun _ -> ());
        ignore (by
 	 (Proofview.V82.tactic (start_equation f_ref terminate_ref
