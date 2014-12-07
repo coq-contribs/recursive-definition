@@ -216,10 +216,10 @@ let  mkCaseEq a =
        (tclTHEN (generalize [mkApp(Lazy.force refl_equal,
 				   [| type_of_a; a|])])
 	  (tclTHEN (fun g2 ->
-		      change_concl
+		      Proofview.V82.of_tactic (change_concl
 			(snd (pattern_occs [(OnlyOccurrences[2], a)]
 			   (pf_env g2)
-			   Evd.empty (pf_concl g2))) g2)
+			   Evd.empty (pf_concl g2)))) g2)
 	     (Proofview.V82.of_tactic (simplest_case a)))) g);;
 
 let rec  mk_intros_and_continue (extra_eqn:bool)
