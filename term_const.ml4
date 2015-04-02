@@ -494,7 +494,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
     (Lemmas.mk_hook hook) in
   let tac = whole_start foncl input_type comparison wf_thm proofs_constr in
   let _ = by (Proofview.V82.tactic tac) in
-  Lemmas.save_proof (Vernacexpr.Proved (true, None))
+  Lemmas.save_proof (Vernacexpr.Proved (Vernacexpr.Transparent, None))
 
 let ind_of_ref = function
   | IndRef (ind,i) -> (ind,i)
@@ -659,7 +659,7 @@ let (com_eqn : identifier ->
 		 (instantiate_lambda
 		    (def_of_const functional_constr)
 		    [f_constr; mkVar x])))));
-       Lemmas.save_proof (Vernacexpr.Proved(true,None)));;
+       Lemmas.save_proof (Vernacexpr.Proved(Vernacexpr.Transparent,None)));;
 
 let recursive_definition f type_of_f r wf proofs eq =
   let function_type, ctx = interp_constr (Global.env()) Evd.empty type_of_f in
