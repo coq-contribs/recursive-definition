@@ -212,7 +212,7 @@ let  mkCaseEq a =
   (fun g ->
      (* commentaire de Yves: on pourra avoir des problemes si
 	a n'est pas bien type dans l'environnement du but *)
-     let type_of_a = (type_of (pf_env g) Evd.empty a) in
+     let type_of_a = (unsafe_type_of (pf_env g) Evd.empty a) in
        (tclTHEN (generalize [mkApp(Lazy.force refl_equal,
 				   [| type_of_a; a|])])
 	  (tclTHEN (fun g2 ->
