@@ -490,7 +490,7 @@ let com_terminate fl input_type relation_ast wf_thm_ast thm_name proofs =
   let foncl = reference_of_constr (global_reference fl) in
   let sign = Environ.named_context_val env in
   let hook _ _ = () in
-  let () = Lemmas.start_proof thm_name (Global, false, Proof Lemma) (Evd.from_env ~ctx Environ.empty_env) ~sign (hyp_terminates fl) 
+  let () = Lemmas.start_proof thm_name (Global, false, Proof Lemma) (Evd.from_ctx ctx) ~sign (hyp_terminates fl)
     (Lemmas.mk_hook hook) in
   let tac = whole_start foncl input_type comparison wf_thm proofs_constr in
   let _ = by (Proofview.V82.tactic tac) in
@@ -649,7 +649,7 @@ let (com_eqn : identifier ->
     let functional_constr = (constr_of_reference functional_ref) in
     let f_constr = (constr_of_reference f_ref) in
       (start_proof eq_name (Global, false, Proof Lemma)
-         (Evd.from_env ~ctx Environ.empty_env)
+         (Evd.from_ctx ctx)
 	 (Environ.named_context_val env) eq_constr (fun _ -> ());
        ignore (by
 	 (Proofview.V82.tactic (start_equation f_ref terminate_ref
@@ -664,7 +664,7 @@ let (com_eqn : identifier ->
 let recursive_definition f type_of_f r wf proofs eq =
   let function_type, ctx = interp_constr (Global.env()) Evd.empty type_of_f in
   let env = push_rel (Name f,None,function_type) (Global.env()) in
-  let eqc, ctx = (interp_constr env (Evd.from_env ~ctx env) eq) in
+  let eqc, ctx = (interp_constr env (Evd.from_ctx ctx) eq) in
   let res = match kind_of_term eqc with
       Prod(Name name_of_var,type_of_var,e) ->
 	(match kind_of_term e with
