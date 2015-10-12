@@ -212,14 +212,14 @@ let  mkCaseEq a =
   (fun g ->
      (* commentaire de Yves: on pourra avoir des problemes si
 	a n'est pas bien type dans l'environnement du but *)
-     let type_of_a = (unsafe_type_of (pf_env g) Evd.empty a) in
+     let type_of_a = (unsafe_type_of (pf_env g) (project g) a) in
        (tclTHEN (generalize [mkApp(Lazy.force refl_equal,
 				   [| type_of_a; a|])])
 	  (tclTHEN (fun g2 ->
 		      Proofview.V82.of_tactic (change_concl
 			(snd (pattern_occs [(OnlyOccurrences[2], a)]
 			   (pf_env g2)
-			   Evd.empty (pf_concl g2)))) g2)
+			   (project g2) (pf_concl g2)))) g2)
 	     (Proofview.V82.of_tactic (simplest_case a)))) g);;
 
 let rec  mk_intros_and_continue (extra_eqn:bool)
@@ -518,7 +518,7 @@ let (value_f:constr -> global_reference -> constr Evd.in_evar_universe_context) 
 			       Anonymous)],
 	  GVar(d0,v_id)])
     in
-    let body, ctx = understand env Evd.empty glob_body in
+    let body, ctx = understand env (Evd.from_env env) glob_body in
     it_mkLambda_or_LetIn body context, ctx
 
 let (declare_fun : identifier -> logical_kind -> (constr Evd.in_evar_universe_context) -> global_reference) =
@@ -662,8 +662,9 @@ let (com_eqn : identifier ->
        Lemmas.save_proof (Vernacexpr.Proved(Vernacexpr.Transparent,None)));;
 
 let recursive_definition f type_of_f r wf proofs eq =
-  let function_type, ctx = interp_constr (Global.env()) Evd.empty type_of_f in
-  let env = push_rel (Name f,None,function_type) (Global.env()) in
+  let env = Global.env () in
+  let function_type, ctx = interp_constr env (Evd.from_env env) type_of_f in
+  let env = push_rel (Name f,None,function_type) env in
   let eqc, ctx = (interp_constr env (Evd.from_ctx ctx) eq) in
   let res = match kind_of_term eqc with
       Prod(Name name_of_var,type_of_var,e) ->
