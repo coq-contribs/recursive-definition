@@ -346,7 +346,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                       (tclCOMPLETE
 			 (tclTHENLIST
                             [Proofview.V82.of_tactic (Simple.eapply proof);
-                             tclORELSE (Proofview.V82.of_tactic default_full_auto) e_assumption]))
+                             tclORELSE (Proofview.V82.of_tactic default_full_auto) (Proofview.V82.of_tactic e_assumption)]))
                       tac)
                  proofs
                  (fun g ->
@@ -650,7 +650,7 @@ let (com_eqn : identifier ->
     let f_constr = (constr_of_reference f_ref) in
       (start_proof eq_name (Global, false, Proof Lemma)
          (Evd.from_ctx ctx)
-	 (Environ.named_context_val env) eq_constr (fun _ -> ());
+	 (Environ.named_context_val env) eq_constr (Proof_global.make_terminator (fun _ -> ()));
        ignore (by
 	 (Proofview.V82.tactic (start_equation f_ref terminate_ref
 	    (fun x ->
