@@ -523,7 +523,7 @@ let (value_f:constr -> global_reference -> constr Evd.in_evar_universe_context) 
 
 let (declare_fun : identifier -> logical_kind -> (constr Evd.in_evar_universe_context) -> global_reference) =
   fun f_id kind value ->
-    let ce = {const_entry_body = Future.from_val ((fst value, Univ.ContextSet.empty), Declareops.no_seff);
+    let ce = {const_entry_body = Future.from_val ((fst value, Univ.ContextSet.empty), Safe_typing.empty_private_constants);
 	      const_entry_type = None;
 	      const_entry_secctx = None;
               const_entry_opaque = false;
