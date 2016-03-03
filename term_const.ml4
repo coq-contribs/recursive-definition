@@ -41,6 +41,7 @@ open Auto
 open Eauto
 
 open Genarg
+open Context.Named.Declaration
 
 let prgoal g = msgnl (Printer.pr_goal ( g));;
 
@@ -76,7 +77,7 @@ let rec getMutCase env t =
 	       Anonymous ->
 		 error "don't know how to handle anonymous variables"
 	     | Name id ->
-		 id, Environ.push_named (id, None, types) env ) in
+		 id, Environ.push_named (LocalAssum (id, types)) env ) in
 	  (match getMutCase env (subst1 (mkVar id) t') with
 	       (l,e,c) -> (id::l,e,c))
     | Case (b, c, a, d) -> ([], env , a)
