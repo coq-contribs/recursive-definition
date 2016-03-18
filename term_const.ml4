@@ -209,6 +209,10 @@ let nat = lazy(coq_init_constant "nat")
 let lt = lazy(coq_init_constant "lt")
 let lt_wf = lazy(coq_constant "lt_wf")
 
+let run_e_redfun f env sigma c =
+  let Sigma.Sigma (c, _, _) = f.Reductionops.e_redfun env (Sigma.Unsafe.of_evar_map sigma) c in
+  c
+
 let  mkCaseEq a =
   (fun g ->
      (* commentaire de Yves: on pourra avoir des problemes si
@@ -218,9 +222,9 @@ let  mkCaseEq a =
 				   [| type_of_a; a|])])
 	  (tclTHEN (fun g2 ->
 		      Proofview.V82.of_tactic (change_concl
-			(snd (pattern_occs [(OnlyOccurrences[2], a)]
+			(run_e_redfun (pattern_occs [(OnlyOccurrences[2], a)])
 			   (pf_env g2)
-			   (project g2) (pf_concl g2)))) g2)
+			   (project g2) (pf_concl g2))) g2)
 	     (Proofview.V82.of_tactic (simplest_case a)))) g);;
 
 let rec  mk_intros_and_continue (extra_eqn:bool)
@@ -249,11 +253,12 @@ let const_of_ref = function
   | _ -> anomaly (Pp.str "ConstRef expected")
 
 let simpl_iter () =
+  Proofview.V82.of_tactic begin
   reduce
     (Lazy
        {rBeta=true;rIota=true;rZeta= true; rDelta=false;
         rConst = [ EvalConstRef (const_of_ref (Lazy.force iter_ref))]})
-    onConcl;;
+    onConcl end
 
 let list_rewrite (rev:bool) (eqs: constr list) =
   tclREPEAT
@@ -279,7 +284,7 @@ let base_leaf (func:global_reference) eqs expr =
 		             (Proofview.V82.of_tactic default_full_auto))); tclIDTAC];
                     Proofview.V82.of_tactic intros;
 		    simpl_iter();
-		    unfold_constr func;
+		    Proofview.V82.of_tactic (unfold_constr func);
                     list_rewrite true eqs;
 		    Proofview.V82.of_tactic default_full_auto ] g);;
 
@@ -330,8 +335,8 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                clear [k];
                Proofview.V82.of_tactic (intros_using [k; h'; def]);
 	       simpl_iter();
-               unfold_in_concl
-		 [(OnlyOccurrences [1], evaluable_of_global_reference func)];
+               Proofview.V82.of_tactic (unfold_in_concl
+		 [(OnlyOccurrences [1], evaluable_of_global_reference func)]);
                list_rewrite true eqs;
 	       Proofview.V82.of_tactic (apply_with_bindings
 		 (Lazy.force f_equal,
@@ -506,7 +511,7 @@ let (value_f:constr -> global_reference -> constr Evd.in_evar_universe_context) 
     let d0 = Loc.ghost in
     let x_id = id_of_string "x" in
     let v_id = id_of_string "v" in
-    let context = [Name x_id, None, a] in
+    let context = [Context.Rel.Declaration.LocalAssum (Name x_id, a)] in
     let env = Environ.push_rel_context context (Global.env ()) in
     let glob_body =
       GCases
@@ -524,7 +529,7 @@ let (value_f:constr -> global_reference -> constr Evd.in_evar_universe_context) 
 
 let (declare_fun : identifier -> logical_kind -> (constr Evd.in_evar_universe_context) -> global_reference) =
   fun f_id kind value ->
-    let ce = {const_entry_body = Future.from_val ((fst value, Univ.ContextSet.empty), Declareops.no_seff);
+    let ce = {const_entry_body = Future.from_val ((fst value, Univ.ContextSet.empty), Safe_typing.empty_private_constants);
 	      const_entry_type = None;
 	      const_entry_secctx = None;
               const_entry_opaque = false;
@@ -544,7 +549,7 @@ let start_equation (f:global_reference) (term_f:global_reference)
   let x = next_ident_away (x_id hyp_ids) ids in
     tclTHENLIST [
       Proofview.V82.of_tactic (intro_using x);
-      unfold_constr f;
+      Proofview.V82.of_tactic (unfold_constr f);
       Proofview.V82.of_tactic (simplest_case (mkApp (Universes.constr_of_reference term_f, [| mkVar x|])));
       cont_tactic x] g;;
 
@@ -566,7 +571,7 @@ let base_leaf_eq func eqs f_id g =
 		  [|mkApp (Lazy.force coq_S, [|mkVar p|]);
 		    mkApp(Lazy.force lt_n_Sn, [|mkVar p|]); f_id|]))));
       simpl_iter();
-      unfold_in_concl [(OnlyOccurrences [1], evaluable_of_global_reference func)];
+      Proofview.V82.of_tactic (unfold_in_concl [(OnlyOccurrences [1], evaluable_of_global_reference func)]);
       list_rewrite true eqs;
       Proofview.V82.of_tactic (apply (Lazy.force refl_equal))] g;;
 
@@ -606,7 +611,7 @@ let rec_leaf_eq termine f ids functional eqs expr fn args =
 	     [| f_S(f_S(f_plus c_p c_p'));
 		mkApp(Lazy.force ssplus_lt, [|c_p;c_p'|]); f|])));
        simpl_iter();
-       unfold_constr (reference_of_constr functional);
+       Proofview.V82.of_tactic (unfold_constr (reference_of_constr functional));
        list_rewrite true eqs;
        Proofview.V82.of_tactic (intros_using [heq2;heq3]);
        tclTRY (Proofview.V82.of_tactic (rewriteLR (mkVar heq3)));
@@ -665,7 +670,7 @@ let (com_eqn : identifier ->
 let recursive_definition f type_of_f r wf proofs eq =
   let env = Global.env () in
   let function_type, ctx = interp_constr env (Evd.from_env env) type_of_f in
-  let env = push_rel (Name f,None,function_type) env in
+  let env = push_rel (Context.Rel.Declaration.LocalAssum (Name f, function_type)) env in
   let eqc, ctx = (interp_constr env (Evd.from_ctx ctx) eq) in
   let res = match kind_of_term eqc with
       Prod(Name name_of_var,type_of_var,e) ->
@@ -685,6 +690,8 @@ let recursive_definition f type_of_f r wf proofs eq =
   let f_ref = declare_f f (IsProof Lemma) input_type term_ref in
   let _ = message "start second proof" in
     com_eqn equation_id functional_ref f_ref term_ref eq;;
+
+open Constrarg
 
 VERNAC COMMAND EXTEND RecursiveDefinition CLASSIFIED AS SIDEFF
   [ "Recursive" "Definition" ident(f) constr(type_of_f) constr(r) constr(wf)
