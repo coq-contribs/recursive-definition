@@ -221,8 +221,8 @@ let  mkCaseEq a =
      (* commentaire de Yves: on pourra avoir des problemes si
 	a n'est pas bien type dans l'environnement du but *)
      let type_of_a = (unsafe_type_of (pf_env g) (project g) a) in
-       (tclTHEN (generalize [mkApp(Lazy.force refl_equal,
-				   [| type_of_a; a|])])
+       (tclTHEN (Proofview.V82.of_tactic (generalize [mkApp(Lazy.force refl_equal,
+				   [| type_of_a; a|])]))
 	  (tclTHEN (fun g2 ->
 		      Proofview.V82.of_tactic (change_concl
 			(run_e_redfun (pattern_occs [(OnlyOccurrences[2], a)])
@@ -335,7 +335,7 @@ let rec_leaf hrec proofs result_type (func:global_reference) eqs expr =
                      Proofview.V82.of_tactic (simplest_elim(mkApp(Lazy.force lt_n_O, [|s_p|])));
                      Proofview.V82.of_tactic default_full_auto];
 		  tclIDTAC];
-               clear [k];
+               Proofview.V82.of_tactic (clear [k]);
                Proofview.V82.of_tactic (intros_using [k; h'; def]);
 	       simpl_iter();
                Proofview.V82.of_tactic (unfold_in_concl
@@ -451,11 +451,11 @@ let start n_name input_type relation wf_thm =
        let v =
 	 (fun g ->
 	    let v =
-	      tclTHENLIST
-		[Proofview.V82.of_tactic (intro_using x);
-		 Proofview.V82.of_tactic (general_elim false None (mkVar x, ImplicitBindings[]) wf_c);
+	      Proofview.V82.of_tactic (Tacticals.New.tclTHENLIST
+		[intro_using x;
+                 general_elim false None (mkVar x, ImplicitBindings[]) wf_c;
 		 clear [x];
-		 Proofview.V82.of_tactic (intros_using [n_name; hrec])] g in
+		 intros_using [n_name; hrec]]) g in
 	      v), hrec in
 	 v
      with e -> msgerrnl(str "error in start"); raise e);;
