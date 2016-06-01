@@ -43,6 +43,9 @@ open Eauto
 open Genarg
 open Context.Named.Declaration
 
+let msgnl = Feedback.msg_info
+let msgerrnl = Feedback.msg_error
+
 let prgoal g = msgnl (Printer.pr_goal ( g));;
 
 let hyp_ids = List.map id_of_string ["x";"v";"k";"def";"p";"h";"n";"h'";
@@ -81,7 +84,7 @@ let rec getMutCase env t =
 	  (match getMutCase env (subst1 (mkVar id) t') with
 	       (l,e,c) -> (id::l,e,c))
     | Case (b, c, a, d) -> ([], env , a)
-    | _ -> Pp.pp(Printer.pr_lconstr t) ;
+    | _ -> Feedback.msg_info(Printer.pr_lconstr t) ;
 	error "Reste a traiter les autres formes, si c'est une application,
 	 Si c'est un autre Case imbrique ou autre... "
 ;;
