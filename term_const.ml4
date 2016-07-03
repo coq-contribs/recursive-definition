@@ -9,9 +9,9 @@ open Names
 open Libnames
 open Globnames
 open Nameops
-open Errors
+open CErrors
 open Util
-open Closure
+open CClosure
 open RedFlags
 open Tacticals
 open Typing
