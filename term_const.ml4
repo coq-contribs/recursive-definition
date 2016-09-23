@@ -694,7 +694,7 @@ let recursive_definition f type_of_f r wf proofs eq =
   let _ = message "start second proof" in
     com_eqn equation_id functional_ref f_ref term_ref eq;;
 
-open Constrarg
+open Stdarg
 
 VERNAC COMMAND EXTEND RecursiveDefinition CLASSIFIED AS SIDEFF
   [ "Recursive" "Definition" ident(f) constr(type_of_f) constr(r) constr(wf)
