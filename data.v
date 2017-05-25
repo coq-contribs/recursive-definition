@@ -28,7 +28,7 @@ Recursive Definition log (nat -> nat) lt lt_wf div2_gt_lt
   log x = (if le_gt_dec x 1 then  0 else  S (log (div2 x)))).
 
 Inspect 5.
-(* Pour tester pas-à-pas:
+(* Pour tester pas-Ã -pas:
 
 Definition log_nat :=
     [log:nat -> nat] [x:nat]

@@ -37,7 +37,7 @@ Recursive Definition log (nat -> nat) lt lt_wf div2_lt
           end).
 
 Inspect 5.
-(* Pour tester pas-à-pas:
+(* Pour tester pas-Ã -pas:
 
 Definition log_nat :=
     [log:nat -> nat] [x:nat]

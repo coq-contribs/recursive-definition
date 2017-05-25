@@ -30,7 +30,7 @@ Recursive Definition fact (Z -> Z) (Zwf 0) (Zwf_well_founded 0) Zwf_minus_one
   end).
 
 Inspect 5.
-(* Pour tester pas-à-pas:
+(* Pour tester pas-Ã -pas:
 
 Definition fact_F :=
     [fact:Z -> Z] [x:Z]
