@@ -11,3 +11,4 @@ Description: This module provides a facility to define recursive functions in
    THIS IS MAINLY A TEST CONTRIB, BEFORE INTEGRATION IN COQ.
 Keywords: recursive functions, well founded recursion, well foundedness
 Category: Miscellaneous/Coq Extensions
+Status: Unmaintained
